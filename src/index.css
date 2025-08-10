@@ -1,0 +1,241 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Lottery DApp Design System - Premium Dark Theme */
+
+@layer base {
+  :root {
+    /* Core Background & Text */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    /* Card System */
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+
+    /* Popover System */
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Primary - Rich Purple/Blue Gradient */
+    --primary: 260 85% 58%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 280 95% 68%;
+
+    /* Secondary - Deep Slate */
+    --secondary: 240 6% 15%;
+    --secondary-foreground: 0 0% 98%;
+
+    /* Muted Tones */
+    --muted: 240 6% 12%;
+    --muted-foreground: 240 5% 65%;
+
+    /* Accent - Gold/Orange Highlights */
+    --accent: 45 93% 58%;
+    --accent-foreground: 240 10% 6%;
+
+    /* Destructive - Red */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Success - Green */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+
+    /* Warning - Orange */
+    --warning: 38 92% 50%;
+    --warning-foreground: 240 10% 6%;
+
+    /* Borders & Inputs */
+    --border: 240 6% 20%;
+    --input: 240 6% 18%;
+    --ring: 260 85% 58%;
+
+    /* Lottery Specific Colors */
+    --lottery-gold: 43 96% 56%;
+    --lottery-silver: 0 0% 75%;
+    --lottery-bronze: 22 82% 58%;
+
+    /* Ticket Types */
+    --ticket-full: 260 85% 58%;
+    --ticket-half: 45 93% 58%;
+    --ticket-quarter: 142 76% 36%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--muted)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--warning)));
+    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(142 76% 46%));
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(var(--muted)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+
+    /* Shadows */
+    --shadow-soft: 0 4px 6px -1px hsl(240 10% 3.9% / 0.3);
+    --shadow-medium: 0 10px 15px -3px hsl(240 10% 3.9% / 0.4);
+    --shadow-large: 0 25px 50px -12px hsl(240 10% 3.9% / 0.6);
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.3);
+    --shadow-accent: 0 0 20px hsl(var(--accent) / 0.2);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background: hsl(var(--background));
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+
+  /* Lottery Card Variants */
+  .lottery-card {
+    @apply bg-card border border-border rounded-xl shadow-lg;
+    background: var(--gradient-card);
+    box-shadow: var(--shadow-medium);
+    transition: var(--transition-smooth);
+  }
+
+  .lottery-card:hover {
+    box-shadow: var(--shadow-large);
+    transform: translateY(-2px);
+  }
+
+  .lottery-card-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Prize Pool Display */
+  .prize-display {
+    @apply text-4xl font-bold bg-clip-text text-transparent;
+    background: var(--gradient-accent);
+    color: #fff;
+  }
+
+  /* Ticket Type Badges */
+  .ticket-full {
+    @apply bg-purple-600 text-white;
+    background: hsl(var(--ticket-full));
+  }
+
+  .ticket-half {
+    @apply bg-orange-500 text-black;
+    background: hsl(var(--ticket-half));
+  }
+
+  .ticket-quarter {
+    @apply bg-green-600 text-white;
+    background: hsl(var(--ticket-quarter));
+  }
+
+  /* Glassmorphism Effect */
+  .glass-card {
+    @apply backdrop-blur-xl border border-white/10;
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  }
+
+  /* Animated Gradients */
+  .gradient-animate {
+    background: var(--gradient-hero);
+    background-size: 200% 200%;
+    animation: gradientShift 3s ease infinite;
+  }
+
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* Pulse Animation for Active Elements */
+  .pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulseGlow {
+    from {
+      box-shadow: var(--shadow-glow);
+    }
+
+    to {
+      box-shadow: var(--shadow-accent);
+    }
+  }
+}
