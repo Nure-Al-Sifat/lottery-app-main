@@ -31,7 +31,7 @@ const Tickets = () => {
   // Fetch NFT metadata for a given tokenId
   const fetchTicketMetadata = useCallback(async (tokenId: bigint): Promise<{ image?: string; error?: string }> => {
     try {
-      const response = await fetch(`https://api.chainlottery.space/data/${Number(tokenId) + 1}.json`);
+      const response = await fetch(`https://api.chainlottery.space/data/${Number(tokenId)}.json`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch metadata for token ${tokenId}: ${response.statusText}`);
