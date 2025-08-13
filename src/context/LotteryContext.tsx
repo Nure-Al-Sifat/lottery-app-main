@@ -113,53 +113,80 @@ export const LotteryProvider: React.FC<LotteryProviderProps> = ({ children }) =>
   }, [fullPrice, halfPrice, quarterPrice]);
 
   const loadRounds = useCallback(async () => {
-    if (!nextRoundId) {
+    if (!nextRoundId || !isConnected) {
       setRounds([]);
       return;
     }
 
     try {
-      const roundPromises = [];
-      for (let i = 0; i < Number(nextRoundId); i++) {
-        roundPromises.push({
-          address: CONTRACTS.LOTTERY_MANAGER,
-          abi: LOTTERY_MANAGER_ABI,
-          functionName: 'rounds',
-          args: [BigInt(i)],
-        });
-      }
-
-      // Read all rounds data in parallel using useReadContracts would be better,
-      // but for now we'll use individual calls
+      setLoading(true);
+      console.log(`Fetching ${Number(nextRoundId)} rounds from contract...`);
+      
       const roundsData: Round[] = [];
       
+      // Fetch each round individually from the contract
       for (let i = 0; i < Number(nextRoundId); i++) {
-        // For now, create rounds with real structure but some mock data
-        // In production, you'd read each round's data from the contract
-        const isActive = i === Number(nextRoundId) - 1;
-        const currentTime = Date.now();
-        const drawTime = isActive 
-          ? currentTime + 2 * 60 * 60 * 1000 // 2 hours from now for active round
-          : currentTime - (i + 1) * 24 * 60 * 60 * 1000; // Past rounds
-        
-        roundsData.push({
-          id: BigInt(i),
-          maxTickets: BigInt(1000),
-          totalSold: BigInt(Math.floor(Math.random() * (isActive ? 300 : 1000))),
-          isActive: isActive,
-          drawTime: BigInt(Math.floor(drawTime / 1000)),
-          drawCompleted: !isActive,
-          totalPool: BigInt(Math.floor(Math.random() * 5000000) + 1000000),
-          winningNumbers: !isActive ? Array.from({length: 6}, () => Math.floor(Math.random() * 49) + 1) : undefined,
-        });
+        try {
+          // Use the config from wagmi to make direct contract calls
+          const { readContract } = await import('@wagmi/core');
+          const { config } = await import('@/config/wagmi');
+          
+          const roundData = await readContract(config, {
+            address: CONTRACTS.LOTTERY_MANAGER as `0x${string}`,
+            abi: LOTTERY_MANAGER_ABI,
+            functionName: 'rounds',
+            args: [BigInt(i)],
+          });
+
+          console.log(`Round ${i} raw data:`, roundData);
+          
+          if (roundData) {
+            const [
+              id,
+              ticketPrice, 
+              maxTickets,
+              totalSold,
+              isActive,
+              drawTime,
+              drawCompleted,
+              totalPool
+            ] = roundData;
+
+            roundsData.push({
+              id: BigInt(i),
+              ticketPrice: ticketPrice > 0 ? ticketPrice : undefined,
+              maxTickets,
+              totalSold,
+              isActive,
+              drawTime,
+              drawCompleted,
+              totalPool,
+              winningNumbers: drawCompleted ? [1, 2, 3, 4, 5, 6] : undefined, // TODO: Fetch from contract
+            });
+            
+            console.log(`Successfully fetched round ${i}:`, roundsData[roundsData.length - 1]);
+          }
+        } catch (error) {
+          console.error(`Error fetching round ${i}:`, error);
+          // Continue to next round instead of failing completely
+        }
       }
       
       setRounds(roundsData);
+      console.log(`Successfully loaded ${roundsData.length} real rounds from blockchain`);
+      
     } catch (error) {
       console.error('Error loading rounds:', error);
+      toast({ 
+        title: 'Contract Error', 
+        description: `Failed to load rounds: ${error instanceof Error ? error.message : 'Unknown error'}`, 
+        variant: 'destructive' 
+      });
       setRounds([]);
+    } finally {
+      setLoading(false);
     }
-  }, [nextRoundId]);
+  }, [nextRoundId, isConnected, toast]);
 
   const loadUserTickets = useCallback(async () => {
     if (!account || !isConnected || !userNFTBalance || Number(userNFTBalance) === 0) {
@@ -275,44 +302,45 @@ export const LotteryProvider: React.FC<LotteryProviderProps> = ({ children }) =>
     try {
       setLoading(true);
       
-      // Get the ticket price based on type
-      let price: bigint;
-      switch (ticketType) {
-        case 0: price = ticketPrices.full; break;
-        case 1: price = ticketPrices.half; break;
-        case 2: price = ticketPrices.quarter; break;
-        default: price = ticketPrices.full;
-      }
-
-      // First approve USDT spending
-      try {
-        writeContract({
-          address: CONTRACTS.MOCK_USDT as `0x${string}`,
-          abi: MOCK_USDT_ABI,
-          functionName: 'approve',
-          args: [CONTRACTS.LOTTERY_MANAGER, price],
-        } as any);
-
-        toast({ 
-          title: 'Approval Sent', 
-          description: 'USDT approval transaction sent' 
-        });
-
-        // Then mint the ticket
-        setTimeout(() => {
-          writeContract({
-            address: CONTRACTS.LOTTERY_MANAGER as `0x${string}`,
-            abi: LOTTERY_MANAGER_ABI,
-            functionName: 'mintTicket',
-            args: [roundId, ticketType],
-          } as any);
-        }, 1000);
-      } catch (writeError) {
-        console.log('Transaction sent:', writeError);
-      }
+      // Use unlimited approval (max uint256)
+      const maxUint256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
 
       toast({ 
-        title: 'Ticket Purchased!', 
+        title: 'Approval Required', 
+        description: 'Please approve unlimited USDT spending...' 
+      });
+
+      // First approve unlimited USDT spending
+      writeContract({
+        address: CONTRACTS.MOCK_USDT as `0x${string}`,
+        abi: MOCK_USDT_ABI,
+        functionName: 'approve',
+        args: [CONTRACTS.LOTTERY_MANAGER, maxUint256],
+      } as any);
+
+      toast({ 
+        title: 'Approval Sent', 
+        description: 'USDT approval transaction sent. Please confirm and wait for confirmation...' 
+      });
+
+      // Wait for approval to be potentially mined before minting
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      toast({ 
+        title: 'Minting Ticket', 
+        description: 'Now sending ticket purchase transaction...' 
+      });
+
+      // Now mint the ticket
+      writeContract({
+        address: CONTRACTS.LOTTERY_MANAGER as `0x${string}`,
+        abi: LOTTERY_MANAGER_ABI,
+        functionName: 'mintTicket',
+        args: [roundId, ticketType],
+      } as any);
+
+      toast({ 
+        title: 'Purchase Complete!', 
         description: `Successfully purchased ${ticketType === 0 ? 'full' : ticketType === 1 ? 'half' : 'quarter'} ticket for round ${roundId.toString()}` 
       });
       
@@ -320,13 +348,13 @@ export const LotteryProvider: React.FC<LotteryProviderProps> = ({ children }) =>
       setTimeout(() => {
         loadRounds();
         loadUserTickets();
-      }, 2000);
+      }, 3000);
       
     } catch (error: any) {
       console.error('Error minting ticket:', error);
       toast({ 
         title: 'Purchase Failed', 
-        description: error.message || 'Failed to purchase ticket', 
+        description: error.message || 'Failed to purchase ticket. Please try again.', 
         variant: 'destructive' 
       });
     } finally {

@@ -16,6 +16,8 @@ if (projectId) {
       projectId,
       enableAnalytics: false,
       enableOnramp: false,
+      enableEIP6963: true,
+      siweConfig: undefined,
       themeMode: 'dark',
       themeVariables: {
         '--w3m-color-mix': '#6366f1',
