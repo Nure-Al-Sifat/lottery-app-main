@@ -89,7 +89,7 @@ const Admin = () => {
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+         {/* <Header /> */}
         <div className="container mx-auto px-4 py-8">
           <Card className="max-w-md mx-auto">
             <CardContent className="p-6 text-center">
