@@ -1,22 +1,24 @@
 export interface Round {
   id: bigint
-  ticketPrice: bigint
+  ticketPrice?: bigint
   maxTickets: bigint
   totalSold: bigint
   isActive: boolean
   drawTime: bigint
   drawCompleted: boolean
   totalPool: bigint
+  winningNumbers?: number[]
 }
 
 export interface Ticket {
   tokenId: bigint
   roundId: bigint
   numbers: number[]
-  ticketType: TicketType
-  owner: string
-  hasWon: boolean
+  ticketType: number
+  owner?: string
+  hasWon?: boolean
   reward: bigint
+  isWinning?: boolean
 }
 
 export enum TicketType {

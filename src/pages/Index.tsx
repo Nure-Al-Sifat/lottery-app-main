@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PrizeDisplay } from '@/components/PrizeDisplay'
 import { CountdownTimer } from '@/components/CountdownTimer'
 import { FaucetButton } from '@/components/FaucetButton'
-import { useLotteryContracts } from '@/hooks/useLotteryContracts'
-import { useLotteryData } from '@/hooks/useLotteryData'
+import { RecentlyMintedNFTs } from '@/components/RecentlyMintedNFTs'
+import {useLottery} from '@/context/LotteryContext'   
 import { useAccount } from 'wagmi'
 import { Trophy, Users, Coins, Zap, ArrowRight, Star } from 'lucide-react'
 import { Round } from '@/types/lottery'
@@ -17,67 +17,24 @@ import heroImage from '@/assets/lottery-hero.jpg'
 
 const Index = () => {
   const { isConnected } = useAccount()
-  const { contracts } = useLotteryContracts()
   const { toast } = useToast()
   const [activeRounds, setActiveRounds] = useState<Round[]>([])
   const [totalPrizePool, setTotalPrizePool] = useState<bigint>(BigInt(0))
   const [loading, setLoading] = useState(true)
 
-  const { rounds, ticketPrices } = useLotteryData()
+  const { rounds } = useLottery()
+
   // console.log(rounds)
   // console.log(userTickets)
   // console.log(ticketPrices)
 
   useEffect(() => {
-    if (contracts && isConnected) {
+
       // loadActiveRounds()
       setActiveRounds(rounds)
-    }
-  }, [contracts, isConnected])
 
-  const loadActiveRounds = async () => {
-    if (!contracts) return
+  }, [rounds, isConnected])
 
-    try {
-      setLoading(true)
-      const nextRoundId = await contracts.lotteryManager.nextRoundId()
-      const rounds: Round[] = []
-      let totalPool = BigInt(0)
-
-      for (let i = 1; i < nextRoundId; i++) {
-        try {
-          const roundData = await contracts.lotteryManager.rounds(i)
-          if (roundData.isActive) {
-            rounds.push({
-              id: roundData.id,
-              ticketPrice: roundData.ticketPrice,
-              maxTickets: roundData.maxTickets,
-              totalSold: roundData.totalSold,
-              isActive: roundData.isActive,
-              drawTime: roundData.drawTime,
-              drawCompleted: roundData.drawCompleted,
-              totalPool: roundData.totalPool,
-            })
-            totalPool += roundData.totalPool
-          }
-        } catch (error) {
-          console.error(`Error loading round ${i}:`, error)
-        }
-      }
-
-      setActiveRounds(rounds)
-      setTotalPrizePool(totalPool)
-    } catch (error) {
-      console.error('Error loading active rounds:', error)
-      toast({
-        title: "Error Loading Rounds",
-        description: "Failed to load active lottery rounds",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const formatProgress = (sold: bigint, max: bigint) => {
     return (Number(sold) / Number(max)) * 100
@@ -85,7 +42,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
       
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">
@@ -205,6 +162,17 @@ const Index = () => {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Recently Minted NFTs Section */}
+      {isConnected && (
+        <section className="py-16">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <RecentlyMintedNFTs />
             </div>
           </div>
         </section>

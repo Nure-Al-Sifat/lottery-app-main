@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PrizeDisplay } from '@/components/PrizeDisplay';
 import { TicketTypeBadge } from '@/components/TicketTypeBadge';
-import { useLotteryContracts } from '@/hooks/useLotteryContracts';
-import { useLotteryData } from '@/hooks/useLotteryData';
+import { useLottery } from '@/context/LotteryContext';
 import { useAccount } from 'wagmi';
 import { Ticket, Trophy, Gift, ExternalLink } from 'lucide-react';
 import { Ticket as TicketType, TicketType as TicketTypeEnum } from '@/types/lottery';
@@ -24,12 +23,10 @@ interface TicketWithImage extends TicketType {
 
 const Tickets = () => {
   const { isConnected, address: account } = useAccount();
-  const { contracts } = useLotteryContracts();
+  const { userTickets, claimReward, rounds, loading } = useLottery();
   const { toast } = useToast();
   const [tickets, setTickets] = useState<TicketWithImage[]>([]);
-  const [loading, setLoading] = useState(false);
   const [claimingTicket, setClaimingTicket] = useState<string | null>(null);
-  const { userTickets, loadUserTickets, rounds } = useLotteryData();
 
   // Fetch NFT metadata for a given tokenId
   const fetchTicketMetadata = useCallback(async (tokenId: bigint): Promise<{ image?: string; error?: string }> => {
@@ -50,12 +47,12 @@ const Tickets = () => {
 
   // Load tickets and their metadata
   useEffect(() => {
-    if (contracts && isConnected && account) {
+    if (isConnected && account) {
       const loadTicketsWithImages = async () => {
-        setLoading(true);
+        // setLoading(true);
         try {
           console.log('Rounds:', rounds);
-          await loadUserTickets();
+          // userTickets will be loaded by context
           console.log('userTickets:', userTickets);
 
           // Fetch metadata for each ticket
@@ -76,7 +73,7 @@ const Tickets = () => {
             variant: 'destructive',
           });
         } finally {
-          setLoading(false);
+          // setLoading(false);
         }
       };
 
@@ -85,22 +82,16 @@ const Tickets = () => {
       console.log('Resetting tickets: not connected or missing contracts');
       setTickets([]);
     }
-  }, []);
+  }, [userTickets, rounds, isConnected, account, fetchTicketMetadata]);
 
-  const claimReward = async (tokenId: bigint) => {
-    if (!contracts) return;
-
+  const handleClaimReward = async (tokenId: bigint) => {
     try {
       setClaimingTicket(tokenId.toString());
-      const tx = await contracts.lotteryManager.claimReward(tokenId);
-      await tx.wait();
-
+      await claimReward(tokenId);
       toast({
         title: 'Reward Claimed!',
         description: `Successfully claimed reward for ticket #${tokenId}`,
       });
-
-      await loadUserTickets();
     } catch (error: any) {
       console.error('Error claiming reward:', error);
       toast({
@@ -120,7 +111,7 @@ const Tickets = () => {
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        {/* <Header /> */}
         <div className="container mx-auto px-4 py-16">
           <div className="text-center">
             <Ticket className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -136,7 +127,7 @@ const Tickets = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -265,7 +256,7 @@ const Tickets = () => {
                       <Button
                         variant="ticket"
                         size="sm"
-                        onClick={() => claimReward(ticket.tokenId)}
+                        onClick={() => handleClaimReward(ticket.tokenId)}
                         disabled={claimingTicket === ticket.tokenId.toString()}
                         className="flex-1"
                       >

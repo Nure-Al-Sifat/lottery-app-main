@@ -55,5 +55,5 @@ export const TICKET_TYPES = {
 // Chain configuration for Sepolia
 export const SEPOLIA_CHAIN_ID = 11155111
 
-export const FAUCET_API_URL = 'https://sepolia-faucet.pk910.de/api/request' as const
+export const FAUCET_API_URL = 'https://api.chainlottery.space/api/faucet' as const
 export const NFT_METADATA_BASE_URL = 'https://api.chainlottery.space/data'

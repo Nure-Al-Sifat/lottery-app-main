@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Clock, Users, DollarSign, Zap, AlertCircle } from 'lucide-react'
 import { Round } from '@/types/lottery'
-import { useLotteryData } from '@/hooks/useLotteryData'
+import { useLottery } from '@/context/LotteryContext'
 import { formatEther } from 'viem'
 
 interface RoundManagementProps {
@@ -15,7 +15,7 @@ interface RoundManagementProps {
 }
 
 export const RoundManagement = ({ rounds, isOwner }: RoundManagementProps) => {
-  const { closeAndDraw } = useLotteryData()
+  const { closeAndDraw } = useLottery()
   const [processingRounds, setProcessingRounds] = useState<Set<bigint>>(new Set())
 
   const handleCloseDraw = async (roundId: bigint) => {

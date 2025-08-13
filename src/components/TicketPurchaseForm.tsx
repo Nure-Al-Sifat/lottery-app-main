@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TicketTypeBadge } from '@/components/TicketTypeBadge'
 import { FaucetButton } from '@/components/FaucetButton'
-import { useLotteryData } from '@/hooks/useLotteryData'
+import { useLottery } from '@/context/LotteryContext'
 import { useAccount } from 'wagmi'
 import { useToast } from '@/hooks/use-toast'
 import { ShoppingCart, Wallet, AlertCircle } from 'lucide-react'
@@ -19,7 +19,7 @@ interface TicketPurchaseFormProps {
 
 export const TicketPurchaseForm = ({ roundId, onPurchaseComplete }: TicketPurchaseFormProps) => {
   const { address: account, isConnected } = useAccount()
-  const { ticketPrices, mintTicket } = useLotteryData()
+  const { ticketPrices, mintTicket } = useLottery()
   const { toast } = useToast()
   
   const [selectedType, setSelectedType] = useState<TicketType>(TicketType.FULL)

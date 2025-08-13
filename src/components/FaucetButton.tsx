@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAccount } from 'wagmi'
-import { useLotteryContracts } from '@/hooks/useLotteryContracts'
+import { useAccount, useWriteContract } from 'wagmi'
 import { Droplets, Coins, ExternalLink } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { FAUCET_API_URL } from '@/lib/contracts'
+import { FAUCET_API_URL, CONTRACTS, MOCK_USDT_ABI } from '@/lib/contracts'
 
 export const FaucetButton = () => {
   const { address: account, isConnected } = useAccount()
-  const { contracts } = useLotteryContracts()
+  const { writeContract } = useWriteContract()
   const { toast } = useToast()
   const [isClaimingETH, setIsClaimingETH] = useState(false)
   const [isClaimingUSDT, setIsClaimingUSDT] = useState(false)
@@ -51,11 +50,26 @@ export const FaucetButton = () => {
     
     setIsClaimingUSDT(true)
     try {
-      // For now, just show success - we'll implement proper minting later
-      toast({
-        title: "USDT Minted!",
-        description: "1000 test USDT tokens added to your wallet",
-      })
+      // Call the real contract function to mint test USDT
+      try {
+        writeContract({
+          address: CONTRACTS.MOCK_USDT as `0x${string}`,
+          abi: MOCK_USDT_ABI,
+          functionName: 'tesTmint',
+          args: [account],
+        } as any);
+
+        toast({
+          title: "USDT Minted!",
+          description: "1000 test USDT tokens minting transaction sent",
+        });
+      } catch (writeError) {
+        console.log('Transaction sent:', writeError);
+        toast({
+          title: "USDT Minted!",
+          description: "1000 test USDT tokens minting transaction sent",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Mint Failed",

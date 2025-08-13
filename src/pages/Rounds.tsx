@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PrizeDisplay } from '@/components/PrizeDisplay'
 import { CountdownTimer } from '@/components/CountdownTimer'
-import { useLotteryContracts } from '@/hooks/useLotteryContracts'
-import { useLotteryData } from '@/hooks/useLotteryData'
+import { useLottery } from '@/context/LotteryContext'
 import { useAccount } from 'wagmi'
 import { Trophy, Users, Clock, Target, Filter } from 'lucide-react'
 import { Round } from '@/types/lottery'
@@ -15,62 +14,14 @@ import { useToast } from '@/hooks/use-toast'
 
 const Rounds = () => {
   const { isConnected } = useAccount()
-  const { contracts } = useLotteryContracts()
   const { toast } = useToast()
   // const [rounds, setRounds] = useState<Round[]>([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<'all' | 'active' | 'closed'>('all')
 
-
-  const { rounds } = useLotteryData()
+  const { rounds, isOwner } = useLottery()
   console.log(rounds)
 
-
-
-  // useEffect(() => {  
-  //   if (contracts && isConnected) {
-  //     loadRounds()
-  //   }
-  // }, [contracts, isConnected])
-
-  // const loadRounds = async () => {
-  //   if (!contracts) return
-
-  //   try {
-  //     setLoading(true)
-  //     const nextRoundId = await contracts.lotteryManager.nextRoundId()
-  //     const allRounds: Round[] = []
-
-  //     for (let i = 1; i < nextRoundId; i++) {
-  //       try {
-  //         const roundData = await contracts.lotteryManager.rounds(i)
-  //         allRounds.push({
-  //           id: roundData.id,
-  //           ticketPrice: roundData.ticketPrice,
-  //           maxTickets: roundData.maxTickets,
-  //           totalSold: roundData.totalSold,
-  //           isActive: roundData.isActive,
-  //           drawTime: roundData.drawTime,
-  //           drawCompleted: roundData.drawCompleted,
-  //           totalPool: roundData.totalPool,
-  //         })
-  //       } catch (error) {
-  //         console.error(`Error loading round ${i}:`, error)
-  //       }
-  //     }
-
-  //     setRounds(allRounds.reverse()) // Show newest first
-  //   } catch (error) {
-  //     console.error('Error loading rounds:', error)
-  //     toast({
-  //       title: "Error Loading Rounds",
-  //       description: "Failed to load lottery rounds",
-  //       variant: "destructive",
-  //     })
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
 
   const filteredRounds = rounds.filter(round => {
     if (filter === 'active') return round.isActive
@@ -97,7 +48,7 @@ const Rounds = () => {
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        {/* <Header /> */}
         <div className="container mx-auto px-4 py-16">
           <div className="text-center">
             <Trophy className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -113,7 +64,7 @@ const Rounds = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      {/* <Header /> */}
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
