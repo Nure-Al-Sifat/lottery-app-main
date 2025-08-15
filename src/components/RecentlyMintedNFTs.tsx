@@ -23,88 +23,84 @@ export const RecentlyMintedNFTs = () => {
   const { userTickets, rounds } = useLottery();
   const [recentTickets, setRecentTickets] = useState<RecentTicket[]>([]);
 
-  useEffect(() => {
-    const loadRecentTickets = async () => {
-      const recentTickets: RecentTicket[] = [];
-      
-      // Add user's tickets with recent timestamps and real metadata
-      for (const ticket of userTickets.slice(0, 2)) {
-        try {
-          const response = await fetch(`https://api.chainlottery.space/data/${ticket.tokenId.toString()}.json`);
-          let image = FALLBACK_IMAGE;
-          
-          if (response.ok) {
-            const metadata = await response.json();
-            image = metadata.image || FALLBACK_IMAGE;
-          }
-          
-          recentTickets.push({
-            tokenId: ticket.tokenId,
-            roundId: ticket.roundId,
-            ticketType: ticket.ticketType,
-            image: image,
-            numbers: ticket.numbers,
-            timestamp: Date.now() - (recentTickets.length * 5 * 60 * 1000), // 5 minutes apart
-          });
-        } catch (error) {
-          // Fallback without image
-          recentTickets.push({
-            tokenId: ticket.tokenId,
-            roundId: ticket.roundId,
-            ticketType: ticket.ticketType,
-            image: FALLBACK_IMAGE,
-            numbers: ticket.numbers,
-            timestamp: Date.now() - (recentTickets.length * 5 * 60 * 1000),
-          });
+useEffect(() => {
+  const loadRecentTickets = async () => {
+    const recent: RecentTicket[] = [];
+
+    for (const ticket of userTickets.slice(0, 2)) {
+      const tokenIdStr = ticket.tokenId.toString();
+      try {
+        const response = await fetch(`https://api.chainlottery.space/data/${tokenIdStr}.json?v=${Date.now()}`);
+        let image = FALLBACK_IMAGE;
+
+        if (response.ok) {
+          const metadata = await response.json();
+          image = metadata.image ? `${metadata.image}?v=${Date.now()}` : FALLBACK_IMAGE;
         }
-      }
 
-      // Add some simulated recent activity from blockchain with real metadata
-      for (let i = 1; i <= 3; i++) {
-        try {
-          const response = await fetch(`https://api.chainlottery.space/data/${i}.json`);
-          let image = FALLBACK_IMAGE;
-          let numbers = Array.from({length: 6}, () => Math.floor(Math.random() * 49) + 1);
-          
-          if (response.ok) {
-            const metadata = await response.json();
-            image = metadata.image || FALLBACK_IMAGE;
-            // Extract numbers from metadata if available
-            const numbersAttr = metadata.attributes?.find((attr: any) => attr.trait_type === 'Numbers');
-            if (numbersAttr && numbersAttr.value) {
-              const numberString = numbersAttr.value.toString();
-              if (numberString.includes(',')) {
-                numbers = numberString.split(',').map((n: string) => parseInt(n.trim()));
-              }
-            }
+        recent.push({
+          tokenId: ticket.tokenId,
+          roundId: ticket.roundId,
+          ticketType: ticket.ticketType,
+          image,
+          numbers: ticket.numbers,
+          timestamp: Date.now() - recent.length * 5 * 60 * 1000,
+        });
+      } catch {
+        recent.push({
+          tokenId: ticket.tokenId,
+          roundId: ticket.roundId,
+          ticketType: ticket.ticketType,
+          image: FALLBACK_IMAGE,
+          numbers: ticket.numbers,
+          timestamp: Date.now() - recent.length * 5 * 60 * 1000,
+        });
+      }
+    }
+
+    for (let i = 1; i <= 3; i++) {
+      try {
+        const response = await fetch(`https://api.chainlottery.space/data/${i}.json?v=${Date.now()}`);
+        let image = FALLBACK_IMAGE;
+        let numbers = Array.from({ length: 6 }, () => Math.floor(Math.random() * 49) + 1);
+
+        if (response.ok) {
+          const metadata = await response.json();
+          image = metadata.image ? `${metadata.image}?v=${Date.now()}` : FALLBACK_IMAGE;
+
+          const numberAttributes = metadata.attributes?.filter((attr: any) =>
+            attr.trait_type?.startsWith('Number ')
+          );
+
+          if (numberAttributes?.length) {
+            numbers = numberAttributes
+              .sort((a: any, b: any) =>
+                parseInt(a.trait_type.split(' ')[1]) - parseInt(b.trait_type.split(' ')[1])
+              )
+              .map((attr: any) => parseInt(attr.value));
           }
-          
-          const roundId = rounds.length > 0 ? rounds[0].id : BigInt(0);
-          
-          recentTickets.push({
-            tokenId: BigInt(i),
-            roundId: roundId,
-            ticketType: Math.floor(Math.random() * 3),
-            image: image,
-            numbers: numbers.slice(0, 6), // Ensure max 6 numbers
-            timestamp: Date.now() - ((recentTickets.length + i) * 3 * 60 * 1000), // 3 minutes apart
-          });
-        } catch (error) {
-          // Skip if metadata can't be loaded
-          continue;
         }
+
+        recent.push({
+          tokenId: BigInt(i),
+          roundId: rounds[0]?.id || BigInt(0),
+          ticketType: Math.floor(Math.random() * 3),
+          image,
+          numbers: numbers.slice(0, 6),
+          timestamp: Date.now() - (recent.length + i) * 3 * 60 * 1000,
+        });
+      } catch {
+        // Skip if fetch fails
       }
+    }
 
-      // Sort by timestamp (most recent first) and take top 3
-      const sortedTickets = recentTickets
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 3);
+    const sorted = recent.sort((a, b) => b.timestamp - a.timestamp).slice(0, 3);
+    setRecentTickets(sorted);
+  };
 
-      setRecentTickets(sortedTickets);
-    };
+  loadRecentTickets();
+}, [userTickets, rounds]);
 
-    loadRecentTickets();
-  }, [userTickets, rounds]);
 
   const formatTimeAgo = (timestamp: number) => {
     const now = Date.now();

@@ -33,6 +33,7 @@ const Admin = () => {
 
   const [withdrawing, setWithdrawing] = useState(false)
   const [contractBalance, setContractBalance] = useState<bigint>(BigInt(0))
+  const [loadingPrices, setLoadingPrices] = useState(false)
 
   // Load contract balance
   // const loadContractBalance = async () => {
@@ -63,16 +64,25 @@ const Admin = () => {
     if (!pricesForm.full || !pricesForm.half || !pricesForm.quarter) return
 
     try {
-      const fullPrice = ethers.parseUnits(pricesForm.full, 6) // USDT has 6 decimals
-      const halfPrice = ethers.parseUnits(pricesForm.half, 6)
-      const quarterPrice = ethers.parseUnits(pricesForm.quarter, 6)
-      
+      setLoadingPrices(true)
+
+      const fullPrice = ethers.parseUnits(pricesForm.full, 18)
+      const halfPrice = ethers.parseUnits(pricesForm.half, 18)
+      const quarterPrice = ethers.parseUnits(pricesForm.quarter, 18)
+
       await setPrices(fullPrice, halfPrice, quarterPrice)
       setPricesForm({ full: '', half: '', quarter: '' })
+
+      // Immediately refresh the prices after transaction completes
+      await new Promise(resolve => setTimeout(resolve, 1000)) // optional delay
+      loadTicketPrices()
     } catch (error) {
       console.error('Error updating prices:', error)
+    } finally {
+      setLoadingPrices(false)
     }
   }
+
 
   const handleWithdraw = async () => {
     try {
@@ -89,7 +99,7 @@ const Admin = () => {
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-background">
-         {/* <Header /> */}
+        {/* <Header /> */}
         <div className="container mx-auto px-4 py-8">
           <Card className="max-w-md mx-auto">
             <CardContent className="p-6 text-center">
@@ -124,7 +134,7 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* <Header /> */}
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-8">
           <Settings className="w-8 h-8 text-primary mr-3" />
@@ -140,10 +150,10 @@ const Admin = () => {
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="rounds" className="space-y-6">
             <RoundManagement rounds={rounds} isOwner={isOwner} />
-            
+
             {/* Create New Round */}
             <Card className="lottery-card">
               <CardHeader>
@@ -165,7 +175,7 @@ const Admin = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="drawTime">Draw Time</Label>
                     <Input
@@ -185,7 +195,7 @@ const Admin = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="settings" className="space-y-6">
             {/* Update Prices */}
             <Card className="lottery-card">
@@ -226,7 +236,7 @@ const Admin = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="halfPrice">Half Ticket Price (USDT)</Label>
                     <Input
@@ -239,7 +249,7 @@ const Admin = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="quarterPrice">Quarter Ticket Price (USDT)</Label>
                     <Input
@@ -253,15 +263,16 @@ const Admin = () => {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full" disabled={loadingPrices}>
                     <DollarSign className="w-4 h-4 mr-2" />
-                    Update Prices
+                    {loadingPrices ? "Updating..." : "Update Prices"}
                   </Button>
+
                 </form>
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="finance" className="space-y-6">
             <div className="grid lg:grid-cols-2 gap-6">
               {/* Contract Balance & Withdrawal */}
@@ -278,7 +289,7 @@ const Admin = () => {
                     <PrizeDisplay amount={contractBalance} size="lg" />
                   </div>
 
-                  <Button 
+                  <Button
                     onClick={() => setContractBalance(BigInt(0))}
                     variant="outline"
                     className="w-full"
@@ -286,7 +297,7 @@ const Admin = () => {
                     Refresh Balance
                   </Button>
 
-                  <Button 
+                  <Button
                     onClick={handleWithdraw}
                     disabled={withdrawing || contractBalance === BigInt(0)}
                     className="w-full"
@@ -309,12 +320,12 @@ const Admin = () => {
                       {account?.slice(0, 6)}...{account?.slice(-4)}
                     </Badge>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Role:</span>
                     <Badge variant="default">Contract Owner</Badge>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Network:</span>
                     <Badge variant="secondary">Sepolia Testnet</Badge>

@@ -19,7 +19,7 @@ const Index = () => {
   const { isConnected } = useAccount()
   const { toast } = useToast()
   const [activeRounds, setActiveRounds] = useState<Round[]>([])
-  const [totalPrizePool, setTotalPrizePool] = useState<bigint>(BigInt(0))
+  const [totalPrizePool, setTotalPrizePool] = useState<bigint>(BigInt(50))
   const [loading, setLoading] = useState(true)
 
   const { rounds } = useLottery()
@@ -28,12 +28,24 @@ const Index = () => {
   // console.log(userTickets)
   // console.log(ticketPrices)
 
-  useEffect(() => {
+useEffect(() => {
+  if (!isConnected || rounds.length === 0) return;
 
-      // loadActiveRounds()
-      setActiveRounds(rounds)
+  const now = Math.floor(Date.now() / 1000);
 
-  }, [rounds, isConnected])
+  // Filter rounds that haven't reached their draw time yet
+  const filtered = rounds.filter(round => Number(round.drawTime) > now);
+
+  // Sort by draw time ascending
+  const sorted = filtered.sort((a, b) => Number(a.drawTime) - Number(b.drawTime));
+
+  setActiveRounds(sorted);
+
+  // Sum up all pools from valid rounds
+  const totalPool = sorted.reduce((sum, round) => sum + round.totalPool, BigInt(0));
+  setTotalPrizePool(totalPool);
+}, [rounds, isConnected]);
+
 
 
   const formatProgress = (sold: bigint, max: bigint) => {

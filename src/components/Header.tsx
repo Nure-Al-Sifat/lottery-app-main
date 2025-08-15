@@ -4,15 +4,24 @@ import { Button } from '@/components/ui/button'
 import { WalletConnectButton } from '@/components/WalletConnectButton'
 import { Menu, X, Home, Trophy, Ticket, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAccount } from 'wagmi'
 
-const navigation = [
+
+
+export const Header = () => {
+  const { address } = useAccount()
+const ADMIN_ADDRESS = '0xC5fCCE03047cA88EbaeD5CF8E3742312a4F614B7'
+const isAdmin = address?.toLowerCase() === ADMIN_ADDRESS.toLowerCase()
+
+const baseNavigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Rounds', href: '/rounds', icon: Trophy },
   { name: 'My Tickets', href: '/tickets', icon: Ticket },
-  { name: 'Admin', href: '/admin', icon: Settings },
 ]
 
-export const Header = () => {
+const adminNav = { name: 'Admin', href: '/admin', icon: Settings }
+
+const navigation = isAdmin ? [...baseNavigation, adminNav] : baseNavigation
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 

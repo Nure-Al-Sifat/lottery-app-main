@@ -31,7 +31,8 @@ const Rounds = () => {
     if (filter === 'active') return round.isActive
     if (filter === 'closed') return !round.isActive
     return true
-  })
+  }).sort((a, b) => Number(b.drawTime) - Number(a.drawTime))
+
 
   const formatProgress = (sold: bigint, max: bigint) => {
     return (Number(sold) / Number(max)) * 100

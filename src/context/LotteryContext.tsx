@@ -291,76 +291,102 @@ export const LotteryProvider: React.FC<LotteryProviderProps> = ({ children }) =>
     }
     setIsOwner(owner.toLowerCase() === account.toLowerCase());
   }, [owner, account]);
+const mintTicket = useCallback(async (roundId: bigint, ticketType: number) => {
+  if (!account) {
+    toast({
+      title: 'Wallet Required',
+      description: 'Please connect your wallet first',
+      variant: 'destructive',
+    });
+    return;
+  }
 
-  // Smart contract functions with working implementation
-  const mintTicket = useCallback(async (roundId: bigint, ticketType: number) => {
-    if (!account) {
-      toast({ title: 'Wallet Required', description: 'Please connect your wallet first', variant: 'destructive' });
-      return;
-    }
+  try {
+    setLoading(true);
 
-    try {
-      setLoading(true);
-      
-      // Use unlimited approval (max uint256)
-      const maxUint256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
+    const { config } = await import('@/config/wagmi');
+    const { readContract, writeContract, waitForTransactionReceipt } = await import('@wagmi/core');
 
-      toast({ 
-        title: 'Approval Required', 
-        description: 'Please approve unlimited USDT spending...' 
+    const ticketPrice =
+      ticketType === 0 ? ticketPrices.full :
+      ticketType === 1 ? ticketPrices.half :
+      ticketPrices.quarter;
+
+    // Step 1: Check USDT allowance
+    const allowance: bigint = await readContract(config, {
+      address: CONTRACTS.MOCK_USDT as `0x${string}`,
+      abi: MOCK_USDT_ABI,
+      functionName: 'allowance',
+      args: [account, CONTRACTS.LOTTERY_MANAGER],
+    });
+
+    if (allowance < ticketPrice) {
+      toast({
+        title: 'Approval Required',
+        description: 'Approving unlimited USDT spending...',
       });
 
-      // First approve unlimited USDT spending
-      writeContract({
+      const approveTxHash = await writeContract(config, {
         address: CONTRACTS.MOCK_USDT as `0x${string}`,
         abi: MOCK_USDT_ABI,
         functionName: 'approve',
-        args: [CONTRACTS.LOTTERY_MANAGER, maxUint256],
-      } as any);
-
-      toast({ 
-        title: 'Approval Sent', 
-        description: 'USDT approval transaction sent. Please confirm and wait for confirmation...' 
+        args: [CONTRACTS.LOTTERY_MANAGER, BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')],
       });
 
-      // Wait for approval to be potentially mined before minting
-      await new Promise(resolve => setTimeout(resolve, 5000));
-
-      toast({ 
-        title: 'Minting Ticket', 
-        description: 'Now sending ticket purchase transaction...' 
+      toast({
+        title: 'Waiting for Approval...',
+        description: 'Confirming approval transaction...',
       });
 
-      // Now mint the ticket
-      writeContract({
-        address: CONTRACTS.LOTTERY_MANAGER as `0x${string}`,
-        abi: LOTTERY_MANAGER_ABI,
-        functionName: 'mintTicket',
-        args: [roundId, ticketType],
-      } as any);
-
-      toast({ 
-        title: 'Purchase Complete!', 
-        description: `Successfully purchased ${ticketType === 0 ? 'full' : ticketType === 1 ? 'half' : 'quarter'} ticket for round ${roundId.toString()}` 
-      });
-      
-      // Reload data after successful transaction
-      setTimeout(() => {
-        loadRounds();
-        loadUserTickets();
-      }, 3000);
-      
-    } catch (error: any) {
-      console.error('Error minting ticket:', error);
-      toast({ 
-        title: 'Purchase Failed', 
-        description: error.message || 'Failed to purchase ticket. Please try again.', 
-        variant: 'destructive' 
-      });
-    } finally {
-      setLoading(false);
+      await waitForTransactionReceipt(config, { hash: approveTxHash });
     }
-  }, [account, ticketPrices, toast, loadRounds, loadUserTickets, writeContract]);
+
+    // Step 2: Mint ticket
+    toast({
+      title: 'Minting Ticket',
+      description: 'Sending mint ticket transaction...',
+    });
+
+    const mintTxHash = await writeContract(config, {
+      address: CONTRACTS.LOTTERY_MANAGER as `0x${string}`,
+      abi: LOTTERY_MANAGER_ABI,
+      functionName: 'mintTicket',
+      args: [roundId, ticketType],
+    });
+
+    toast({
+      title: 'Waiting for Confirmation...',
+      description: 'Confirming ticket mint transaction...',
+    });
+
+    await waitForTransactionReceipt(config, { hash: mintTxHash });
+
+    toast({
+      title: 'Ticket Purchased!',
+      description: 'Your ticket has been successfully purchased.',
+    });
+
+    // Refresh rounds and user tickets
+    setTimeout(() => {
+      loadRounds();
+      loadUserTickets();
+    }, 3000);
+
+  } catch (error: any) {
+    console.error('Error minting ticket:', error);
+    toast({
+      title: 'Purchase Failed',
+      description: error.message || 'Failed to purchase ticket.',
+      variant: 'destructive',
+    });
+  } finally {
+    setLoading(false);
+  }
+}, [account, ticketPrices, toast, loadRounds, loadUserTickets]);
+
+
+
+
 
   const claimReward = useCallback(async (tokenId: bigint) => {
     if (!account) {
@@ -526,47 +552,63 @@ export const LotteryProvider: React.FC<LotteryProviderProps> = ({ children }) =>
     }
   }, [account, isOwner, toast, writeContract]);
 
-  const setPrices = useCallback(async (full: bigint, half: bigint, quarter: bigint) => {
-    if (!account || !isOwner) {
-      toast({ title: 'Access Denied', description: 'Only the contract owner can set prices', variant: 'destructive' });
-      return;
-    }
+const setPrices = useCallback(async (full: bigint, half: bigint, quarter: bigint) => {
+  if (!account || !isOwner) {
+    toast({
+      title: 'Access Denied',
+      description: 'Only the contract owner can set prices',
+      variant: 'destructive',
+    });
+    return;
+  }
 
-    try {
-      setLoading(true);
-      
-      try {
-        writeContract({
-          address: CONTRACTS.LOTTERY_MANAGER as `0x${string}`,
-          abi: LOTTERY_MANAGER_ABI,
-          functionName: 'setPrices',
-          args: [full, half, quarter],
-        } as any);
+  try {
+    setLoading(true);
 
-        toast({ 
-          title: 'Prices Updated!', 
-          description: `Successfully sent price update transaction` 
-        });
-      } catch (writeError) {
-        console.log('Transaction sent:', writeError);
-      }
-      
-      // Reload prices from contract
-      setTimeout(() => {
-        loadTicketPrices();
-      }, 2000);
-      
-    } catch (error: any) {
-      console.error('Error setting prices:', error);
-      toast({ 
-        title: 'Price Update Failed', 
-        description: error.message || 'Failed to update prices', 
-        variant: 'destructive' 
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [account, isOwner, toast, writeContract, loadTicketPrices]);
+    const { config } = await import('@/config/wagmi');
+    const { writeContract, waitForTransactionReceipt } = await import('@wagmi/core');
+
+    toast({
+      title: 'Updating Prices...',
+      description: 'Sending transaction to update ticket prices...',
+    });
+
+    const txHash = await writeContract(config, {
+      address: CONTRACTS.LOTTERY_MANAGER as `0x${string}`,
+      abi: LOTTERY_MANAGER_ABI,
+      functionName: 'setPrices',
+      args: [full, half, quarter],
+    });
+
+    toast({
+      title: 'Waiting for Confirmation...',
+      description: 'Please wait while the price update is confirmed on-chain...',
+    });
+
+    await waitForTransactionReceipt(config, { hash: txHash });
+
+    toast({
+      title: 'Prices Updated!',
+      description: 'Ticket prices have been successfully updated.',
+    });
+
+    // 🔁 Reload ticket prices after confirmation
+    setTimeout(() => {
+      loadTicketPrices();
+    }, 1000);
+
+  } catch (error: any) {
+    console.error('Error setting prices:', error);
+    toast({
+      title: 'Price Update Failed',
+      description: error.message || 'Failed to update ticket prices',
+      variant: 'destructive',
+    });
+  } finally {
+    setLoading(false);
+  }
+}, [account, isOwner, toast, loadTicketPrices]);
+
 
   useEffect(() => {
     if (isConnected) {
