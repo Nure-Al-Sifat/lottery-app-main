@@ -80,7 +80,7 @@ export const NFTMetadata = ({ tokenId, className }: NFTMetadataProps) => {
             <img
               src={metadata.image}
               alt={metadata.name}
-              className="w-full h-48 object-cover rounded-lg"
+              className="w-full h-auto object-cover rounded-lg"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
               }}

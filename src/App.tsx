@@ -6,6 +6,7 @@ import HeaderWrapper from "./components/HeaderWrapper";
 import Index from "./pages/Index";
 import Rounds from "./pages/Rounds";
 import Tickets from "./pages/Tickets";
+import NFTDetails from "./pages/NFTDetails";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -20,7 +21,7 @@ const App = () => (
           <Route path="/rounds" element={<Rounds />} />
           <Route path="/rounds/:roundId" element={<Rounds />} />
           <Route path="/tickets" element={<Tickets />} />
-          <Route path="/tickets/:tokenId" element={<Tickets />} />
+          <Route path="/nft/:tokenId" element={<NFTDetails />} />
           <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PrizeDisplay } from '@/components/PrizeDisplay';
 import { TicketTypeBadge } from '@/components/TicketTypeBadge';
 import { useLottery } from '@/context/LotteryContext';
 import { useAccount } from 'wagmi';
-import { Ticket, Trophy, Gift, ExternalLink } from 'lucide-react';
+import { Ticket, Trophy, Gift, ExternalLink, Loader2 } from 'lucide-react';
 import { Ticket as TicketType, TicketType as TicketTypeEnum } from '@/types/lottery';
 import { useToast } from '@/hooks/use-toast';
 
@@ -26,7 +27,16 @@ const Tickets = () => {
   const { userTickets, claimReward, rounds, loading } = useLottery();
   const { toast } = useToast();
   const [tickets, setTickets] = useState<TicketWithImage[]>([]);
+  const [displayedTickets, setDisplayedTickets] = useState<TicketWithImage[]>([]);
   const [claimingTicket, setClaimingTicket] = useState<string | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  const ITEMS_PER_PAGE = 6;
+  const INITIAL_DELAY = 2000; // 2 seconds delay before showing first batch
 
   // Fetch NFT metadata for a given tokenId
   const fetchTicketMetadata = useCallback(async (tokenId: bigint): Promise<{ image?: string; error?: string }> => {
@@ -49,15 +59,19 @@ const Tickets = () => {
   useEffect(() => {
     if (isConnected && account) {
       const loadTicketsWithImages = async () => {
-        // setLoading(true);
+        setIsInitialLoading(true);
         try {
           console.log('Rounds:', rounds);
-          // userTickets will be loaded by context
           console.log('userTickets:', userTickets);
+
+          // Sort tickets by tokenId in descending order (large to small)
+          const sortedTickets = [...userTickets].sort((a, b) => 
+            Number(b.tokenId) - Number(a.tokenId)
+          );
 
           // Fetch metadata for each ticket
           const ticketsWithImages: TicketWithImage[] = await Promise.all(
-            userTickets.reverse().map(async (ticket) => {
+            sortedTickets.map(async (ticket) => {
               const { image, error } = await fetchTicketMetadata(ticket.tokenId);
               return { ...ticket, image, imageLoading: !image && !error, imageError: error };
             })
@@ -65,6 +79,14 @@ const Tickets = () => {
 
           console.log('Tickets with images:', ticketsWithImages);
           setTickets(ticketsWithImages);
+          
+          // Add initial delay for professional loading
+          setTimeout(() => {
+            setDisplayedTickets(ticketsWithImages.slice(0, ITEMS_PER_PAGE));
+            setCurrentPage(0);
+            setIsInitialLoading(false);
+          }, INITIAL_DELAY);
+          
         } catch (error) {
           console.error('Error loading tickets:', error);
           toast({
@@ -72,8 +94,7 @@ const Tickets = () => {
             description: 'Failed to load your lottery tickets',
             variant: 'destructive',
           });
-        } finally {
-          // setLoading(false);
+          setIsInitialLoading(false);
         }
       };
 
@@ -81,8 +102,53 @@ const Tickets = () => {
     } else {
       console.log('Resetting tickets: not connected or missing contracts');
       setTickets([]);
+      setDisplayedTickets([]);
+      setIsInitialLoading(false);
     }
   }, [userTickets, rounds, isConnected, account, fetchTicketMetadata]);
+
+  // Progressive loading on scroll
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    if (loadMoreRef.current && tickets.length > 0 && displayedTickets.length < tickets.length) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && !isLoadingMore) {
+            loadMoreTickets();
+          }
+        },
+        { threshold: 0.1 }
+      );
+
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [displayedTickets.length, tickets.length, isLoadingMore]);
+
+  const loadMoreTickets = useCallback(() => {
+    if (isLoadingMore || displayedTickets.length >= tickets.length) return;
+    
+    setIsLoadingMore(true);
+    
+    setTimeout(() => {
+      const nextPage = currentPage + 1;
+      const startIndex = nextPage * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const newTickets = tickets.slice(0, endIndex);
+      
+      setDisplayedTickets(newTickets);
+      setCurrentPage(nextPage);
+      setIsLoadingMore(false);
+    }, 800); // Smooth loading delay
+  }, [currentPage, tickets, displayedTickets.length, isLoadingMore]);
 
   const handleClaimReward = async (tokenId: bigint) => {
     try {
@@ -137,22 +203,27 @@ const Tickets = () => {
           </p>
         </div>
 
-        {loading ? (
+        {isInitialLoading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
               <Card key={i} className="lottery-card">
                 <CardHeader>
-                  <div className="animate-pulse">
-                    <div className="h-6 bg-muted rounded w-1/2 mb-2" />
-                    <div className="h-4 bg-muted rounded w-1/3" />
-                  </div>
+                  <Skeleton className="h-6 w-1/2 mb-2" />
+                  <Skeleton className="h-4 w-1/3" />
                 </CardHeader>
-                <CardContent>
-                  <div className="animate-pulse space-y-3">
-                    <div className="h-40 bg-muted rounded" />
-                    <div className="h-4 bg-muted rounded" />
-                    <div className="h-4 bg-muted rounded w-3/4" />
-                    <div className="h-8 bg-muted rounded" />
+                <CardContent className="space-y-4">
+                  <Skeleton className="h-40 w-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-1/4" />
+                    <div className="flex gap-2">
+                      {[...Array(5)].map((_, j) => (
+                        <Skeleton key={j} className="w-8 h-8 rounded-full" />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Skeleton className="h-8 flex-1" />
+                    <Skeleton className="h-8 flex-1" />
                   </div>
                 </CardContent>
               </Card>
@@ -173,8 +244,9 @@ const Tickets = () => {
             </Link>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tickets.map((ticket) => (
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {displayedTickets.map((ticket) => (
               <Card
                 key={ticket.tokenId.toString()}
                 className={`lottery-card hover:scale-105 transition-all duration-300 ${ticket.isWinning ? 'ring-2 ring-success' : ''}`}
@@ -245,7 +317,7 @@ const Tickets = () => {
 
                   {/* Action Buttons */}
                   <div className="flex gap-2">
-                    <Link to={`/tickets/${ticket.tokenId}`} className="flex-1">
+                    <Link to={`/nft/${ticket.tokenId}`} className="flex-1">
                       <Button variant="outline" size="sm" className="w-full">
                         <ExternalLink className="w-4 h-4 mr-2" />
                         View Details
@@ -275,10 +347,50 @@ const Tickets = () => {
               </Card>
             ))}
           </div>
+
+          {/* Loading more indicator */}
+          {displayedTickets.length < tickets.length && (
+            <div ref={loadMoreRef} className="text-center py-8">
+              {isLoadingMore ? (
+                <div className="space-y-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+                  <p className="text-muted-foreground">Loading more tickets...</p>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                    {[...Array(3)].map((_, i) => (
+                      <Card key={`loading-${i}`} className="lottery-card">
+                        <CardHeader>
+                          <Skeleton className="h-6 w-1/2 mb-2" />
+                          <Skeleton className="h-4 w-1/3" />
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <Skeleton className="h-40 w-full" />
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-1/4" />
+                            <div className="flex gap-2">
+                              {[...Array(5)].map((_, j) => (
+                                <Skeleton key={j} className="w-8 h-8 rounded-full" />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Skeleton className="h-8 flex-1" />
+                            <Skeleton className="h-8 flex-1" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">Scroll down to load more tickets</p>
+              )}
+            </div>
+          )}
+          </>
         )}
 
         {/* Summary Stats */}
-        {tickets.length > 0 && (
+        {displayedTickets.length > 0 && (
           <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="lottery-card text-center">
               <CardContent className="pt-6">

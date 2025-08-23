@@ -331,6 +331,8 @@ const mintTicket = useCallback(async (roundId: bigint, ticketType: number) => {
         abi: MOCK_USDT_ABI,
         functionName: 'approve',
         args: [CONTRACTS.LOTTERY_MANAGER, BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')],
+        account,
+        chain: config.chains[0],
       });
 
       toast({
@@ -352,6 +354,8 @@ const mintTicket = useCallback(async (roundId: bigint, ticketType: number) => {
       abi: LOTTERY_MANAGER_ABI,
       functionName: 'mintTicket',
       args: [roundId, ticketType],
+      account,
+      chain: config.chains[0],
     });
 
     toast({
@@ -578,6 +582,8 @@ const setPrices = useCallback(async (full: bigint, half: bigint, quarter: bigint
       abi: LOTTERY_MANAGER_ABI,
       functionName: 'setPrices',
       args: [full, half, quarter],
+      account,
+      chain: config.chains[0],
     });
 
     toast({

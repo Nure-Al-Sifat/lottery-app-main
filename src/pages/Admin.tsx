@@ -73,9 +73,7 @@ const Admin = () => {
       await setPrices(fullPrice, halfPrice, quarterPrice)
       setPricesForm({ full: '', half: '', quarter: '' })
 
-      // Immediately refresh the prices after transaction completes
-      await new Promise(resolve => setTimeout(resolve, 1000)) // optional delay
-      loadTicketPrices()
+      // Prices will be automatically refreshed by the context
     } catch (error) {
       console.error('Error updating prices:', error)
     } finally {

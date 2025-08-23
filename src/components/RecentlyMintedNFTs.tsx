@@ -139,9 +139,9 @@ export const RecentlyMintedNFTs = () => {
       <CardContent className="p-6">
         {/* Grid Layout */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {recentTickets.map((ticket) => (
+          {recentTickets.map((ticket, index) => (
             <div
-              key={ticket.tokenId.toString()}
+              key={`${ticket.tokenId.toString()}-${index}`}
               className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-card via-muted/30 to-card border border-border/50 hover:border-primary/50 transition-all duration-300 hover:scale-105 hover:shadow-xl"
             >
               {/* Background Glow Effect */}
@@ -183,7 +183,7 @@ export const RecentlyMintedNFTs = () => {
                   <h3 className="font-bold text-lg truncate">
                     Ticket #{ticket.tokenId.toString()}
                   </h3>
-                  <Link to={`/tickets/${ticket.tokenId}`}>
+                  <Link to={`/nft/${ticket.tokenId}`}>
                     <Button
                       variant="ghost"
                       size="sm"
